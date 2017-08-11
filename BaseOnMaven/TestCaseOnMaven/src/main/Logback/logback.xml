@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+	 scan:当配置文件被修改时，是否重新加载
+	 scanPeriod:间隔多久扫描一次配置文件
+	 debug:是否输出logger的执行详细信息
+-->
+<configuration scan="true" scanPeriod="50 second" debug="true">
+
+	<!-- 配置属性/变量 -->
+	<property name="M_LoggerName" value="MyLogger"></property>
+	<property name="M_logFileDir" value="E:\\testRes"></property>
+	
+	<!-- 获取时间戳字符串 -->
+	<timestamp key="bySecond" datePattern="YYYY-MM-dd HH:mm:sss"></timestamp>
+	
+	<!-- 
+		Logger关联的上下文名，使用${}引用属性/变量property,
+		此元素只能赋值一次，多次赋值将报错：
+		java.lang.IllegalStateException: Context has been already given a name
+	 -->
+	<!-- <contextName>${M_LoggerName}</contextName> -->
+	<!-- 也可以使用时间戳变量作为上下文名 -->
+	<contextName>${bySecond}</contextName>
+ 
+
+	<!-- 
+		appender：附着器；输出源；输出目的地	
+		logback的jar包默认提供多个类型的输出器，如：控制台、文件、循环文件记录
+		而输出器有属性可进行配置，如：输出格式、输出文件名、策略（文件滚动策略）等
+	 -->
+	<appender name="root_stdout" class="ch.qos.logback.core.ConsoleAppender">
+		<!-- encoder:默认配置问PatternLayoutEncoder -->
+		<encoder>
+			<!-- 输出格式 -->
+			<pattern>[root logger] %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+		</encoder>
+	</appender>	 
+ 
+	 <appender name="package_stdout" class="ch.qos.logback.core.ConsoleAppender">
+	 	<encoder>
+	 		<pattern>[package_stdout logger] %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+	 	</encoder>
+	 </appender>
+ 
+	 <appender name="exactly_stdout" class="ch.qos.logback.core.ConsoleAppender">
+	 	<encoder>
+	 		<pattern>[exactly_stdout logger] %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+	 	</encoder>
+	 </appender>
+	 
+	 <appender name="exactly_package_stdout" class="ch.qos.logback.core.ConsoleAppender">
+	 	<encoder>
+	 		<pattern>[exactly_package_stdout logger] %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+	 	</encoder>
+	 </appender>	 
+	  
+	<!-- 循环文件记录 -->
+	<appender name="roll_appender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${M_logFileDir}/test.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${M_logFileDir}/m_rollLogFile.%d{yyyy-MM-dd}.log</fileNamePattern>
+			<maxHistory>1</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>[rollFile logger] %-4relative [%thread] %-5level %logger %n</pattern>
+		</encoder>
+	</appender>
+ 
+ 	<!-- 
+		root是最基础的logger，它的打印级别默认为debug，
+		其他logger元素默认继承root的打印级别
+		如果此时不写带有引用appender的root元素，将不会打印日志
+	-->
+	<root level="info">
+		<appender-ref ref="root_stdout"/>
+	</root>
+	
+	<!--
+		logger元素的属性：
+			name：其值为某一个包路径或具体到某一个类的全限定名 
+			level:其打印级别，不写则继承root元素的打印级别
+			additivity:是否向上级logger传递打印信息，默认为true；
+			apperder-ref可以指定多个
+	-->
+	<logger name="com" level="error" additivity="true">
+		<appender-ref ref="package_stdout"/>
+	</logger>
+
+	<!-- 只使用最精准指定的logger -->
+	<logger name="com.test.log.logback" level="error" additivity="false">
+		<appender-ref ref="exactly_package_stdout"/>
+		<appender-ref ref="roll_appender"/>
+	</logger>
+	
+	<!-- 
+		最精准/更具体指定的logger,
+		此logger就算additivity为true，将信息传递给上一级，
+		也仅仅是将error及以后的级别传递，上一级就算范围小也起作用（不合逻辑）
+		比如：子级 -> warn且additivity=true，上一级 -> error
+		记录日志时，子级进行日志记录，父级也进行日志记录
+		则：父级建议的日志记录级别是大于子级的日志记录级别
+	 -->
+	<logger name="com.test.log.logback.LogbackTest" level="warn" additivity="true">
+		<appender-ref ref="exactly_stdout"/>
+	</logger>
+</configuration>
